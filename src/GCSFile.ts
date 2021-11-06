@@ -1,4 +1,3 @@
-import { Readable } from "stream";
 import { Converter, Data, isNode } from "univ-conv";
 import { AbstractFile, OpenOptions, Stats, WriteOptions } from "univ-fs";
 import { GCSFileSystem } from "./GCSFileSystem";
@@ -43,7 +42,8 @@ export class GCSFile extends AbstractFile {
       head = await this._load(options);
     }
 
-    const file = await this.gfs._getEntry(path, false);
+    let file = await this.gfs._getEntry(path, false);
+    /*
     let metadata: { [key: string]: string } | undefined;
     if (stats) {
       const props = { ...stats };
@@ -52,8 +52,10 @@ export class GCSFile extends AbstractFile {
       delete props.modified;
       metadata = gfs._createMetadata(props);
     }
+    */
 
     try {
+      /*
       if (isNode) {
         let readable: Readable;
         if (head) {
@@ -67,18 +69,22 @@ export class GCSFile extends AbstractFile {
           await file.setMetadata(metadata);
         }
       } else {
-        let buffer: Buffer;
-        if (head) {
-          buffer = await converter.merge([head, data], "Buffer");
-        } else {
-          buffer = await converter.toBuffer(data);
-        }
-        if (metadata) {
-          await file.save(buffer, { metadata });
-        } else {
-          await file.save(buffer);
-        }
+      */
+      let buffer: Buffer;
+      if (head) {
+        buffer = await converter.merge([head, data], "Buffer");
+      } else {
+        buffer = await converter.toBuffer(data);
       }
+      await file.save(buffer);
+      /*
+      if (metadata) {
+        await file.save(buffer, { metadata });
+      } else {
+        await file.save(buffer);
+      }
+      */
+      //}
     } catch (e) {
       throw gfs._error(path, e, true);
     }

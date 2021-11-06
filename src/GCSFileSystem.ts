@@ -108,7 +108,7 @@ export class GCSFileSystem extends AbstractFileSystem {
     if (!path || path === "/") {
       key = this.repository;
     } else {
-      key = joinPaths(this.repository, path);
+      key = joinPaths(this.repository, path, false);
     }
     if (isDirectory) {
       key += "/";

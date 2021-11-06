@@ -13,12 +13,26 @@ export class GCSDirectory extends AbstractDirectory {
     try {
       const prefix = gfs._getKey(path, true);
       const bucket = await gfs._getBucket();
-      const res = await bucket.getFiles({ prefix, delimiter: "/" });
-      for (const file of res[0]) {
-        const name = file.name;
-        if (name === prefix) {
+      const [files, , apiResponse] = await bucket.getFiles({
+        autoPaginate: false,
+        prefix,
+        delimiter: "/",
+      });
+      for (const dir of apiResponse?.prefixes ?? []) {
+        if (prefix === dir) {
           continue;
         }
+        const parts = dir.split("/");
+        const name = parts[parts.length - 2] as string;
+        const joined = joinPaths(path, name);
+        paths.push(joined);
+      }
+      for (const file of files ?? []) {
+        if (prefix === file.name) {
+          continue;
+        }
+        const parts = file.name.split("/");
+        const name = parts[parts.length - 1] as string;
         const joined = joinPaths(path, name);
         paths.push(joined);
       }
