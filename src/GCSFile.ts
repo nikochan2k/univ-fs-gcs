@@ -1,14 +1,6 @@
 import { Readable } from "stream";
 import { Converter, Data } from "univ-conv";
-import {
-  AbstractFile,
-  createError,
-  ErrorLike,
-  NotFoundError,
-  OpenOptions,
-  Stats,
-  WriteOptions,
-} from "univ-fs";
+import { AbstractFile, OpenOptions, Stats, WriteOptions } from "univ-fs";
 import { GCSFileSystem } from "./GCSFileSystem";
 
 export class GCSFile extends AbstractFile {
@@ -17,25 +9,18 @@ export class GCSFile extends AbstractFile {
   }
 
   protected async _load(_options: OpenOptions): Promise<Data> {
-    const gfs = this.gfs;
-    const path = this.path;
-
-    try {
-      const file = await gfs._getFile(path, true);
-      return file.createReadStream();
-    } catch (e) {
-      throw createError({ repository: gfs.repository, path, e });
-    }
+    const file = await this.gfs._getEntry(this.path, false);
+    return file.createReadStream();
   }
 
   protected async _rm(): Promise<void> {
     const gfs = this.gfs;
     const path = this.path;
+    const file = await this.gfs._getEntry(path, false);
     try {
-      const file = await this.gfs._getFile(path, true);
       await file.delete();
     } catch (e) {
-      throw gfs._error(path, e, false);
+      throw gfs._error(path, e, true);
     }
   }
 
@@ -48,19 +33,12 @@ export class GCSFile extends AbstractFile {
     const path = this.path;
     const converter = new Converter(options);
 
+    let head: Data | undefined;
+    if (options.append && stats) {
+      head = await this._load(options);
+    }
+    const file = await this.gfs._getEntry(path, false);
     try {
-      const file = await this.gfs._getFile(path, true);
-
-      let head: Data | undefined;
-      if (options.append && stats) {
-        try {
-          head = await this._load(options);
-        } catch (e: unknown) {
-          if ((e as ErrorLike).name !== NotFoundError.name) {
-            throw e;
-          }
-        }
-      }
       let readable: Readable;
       if (head) {
         readable = await converter.merge([head, data], "Readable");
@@ -70,7 +48,7 @@ export class GCSFile extends AbstractFile {
       const writable = file.createWriteStream();
       await converter.pipe(readable, writable);
     } catch (e) {
-      throw gfs._error(path, e, false);
+      throw gfs._error(path, e, true);
     }
   }
 }

@@ -79,7 +79,7 @@ export class GCSFileSystem extends AbstractFileSystem {
     return this.bucket;
   }
 
-  public async _getFile(path: string, isDirectory: boolean) {
+  public async _getEntry(path: string, isDirectory: boolean) {
     const bucket = await this._getBucket();
     const key = this._getKey(path, isDirectory);
     return bucket.file(key);
@@ -99,9 +99,9 @@ export class GCSFileSystem extends AbstractFileSystem {
   }
 
   public async _getMetadata(path: string, isDirectory: boolean) {
+    const entry = await this._getEntry(path, isDirectory);
     try {
-      const file = await this._getFile(path, isDirectory);
-      const res = await file.getMetadata();
+      const res = await entry.getMetadata();
       return res[0] as { [key: string]: string };
     } catch (e) {
       throw this._error(path, e, false);
@@ -146,23 +146,15 @@ export class GCSFileSystem extends AbstractFileSystem {
     for (const [key, value] of Object.entries(props)) {
       metadata[key] = "" + value; // eslint-disable-line
     }
+    const entry = await this._getEntry(path, props["size"] === null);
     try {
-      const file = await this._getFile(path, props["size"] === null);
-      await file.setMetadata(metadata);
+      await entry.setMetadata(metadata);
     } catch (e) {
       throw this._error(path, e, true);
     }
   }
 
-  public async getDirectory(path: string): Promise<AbstractDirectory> {
-    return Promise.resolve(new GCSDirectory(this, path));
-  }
-
-  public async getFile(path: string): Promise<AbstractFile> {
-    return Promise.resolve(new GCSFile(this, path));
-  }
-
-  public async toURL(path: string, options?: URLOptions): Promise<string> {
+  public async _toURL(path: string, options?: URLOptions): Promise<string> {
     options = { urlType: "GET", expires: 86400, ...options };
     let action: "read" | "write" | "delete";
     switch (options.urlType) {
@@ -183,14 +175,23 @@ export class GCSFileSystem extends AbstractFileSystem {
           false
         );
     }
+
+    const file = await this._getEntry(path, true);
     try {
-      const file = await this._getFile(path, true);
       const expires = new Date(Date.now() + (options.expires ?? 86400) * 1000);
       const res = await file.getSignedUrl({ action, expires });
       return res[0];
     } catch (e) {
-      throw this._error(path, e, true);
+      throw this._error(path, e, false);
     }
+  }
+
+  public async getDirectory(path: string): Promise<AbstractDirectory> {
+    return Promise.resolve(new GCSDirectory(this, path));
+  }
+
+  public async getFile(path: string): Promise<AbstractFile> {
+    return Promise.resolve(new GCSFile(this, path));
   }
 
   private _handleHead(
