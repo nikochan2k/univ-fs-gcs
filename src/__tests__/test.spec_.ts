@@ -11,7 +11,6 @@ it("Get", async () => {
   const ws = file.createWriteStream();
   await converter.pipe("test", ws);
   const metadata = await file.getMetadata();
-  console.log(metadata);
 });
 */
 

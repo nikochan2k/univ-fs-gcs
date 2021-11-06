@@ -29,7 +29,7 @@ export class GCSDirectory extends AbstractDirectory {
     const path = this.path;
     const dir = await gfs._getEntry(path, true);
     try {
-      await dir.create();
+      await dir.save("");
     } catch (e) {
       throw gfs._error(path, e, true);
     }

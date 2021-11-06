@@ -1,5 +1,5 @@
 import { Readable } from "stream";
-import { Converter, Data } from "univ-conv";
+import { Converter, Data, isNode } from "univ-conv";
 import { AbstractFile, OpenOptions, Stats, WriteOptions } from "univ-fs";
 import { GCSFileSystem } from "./GCSFileSystem";
 
@@ -10,7 +10,12 @@ export class GCSFile extends AbstractFile {
 
   protected async _load(_options: OpenOptions): Promise<Data> {
     const file = await this.gfs._getEntry(this.path, false);
-    return file.createReadStream();
+    if (isNode) {
+      return file.createReadStream();
+    } else {
+      const res = await file.download();
+      return res[0];
+    }
   }
 
   protected async _rm(): Promise<void> {
@@ -37,16 +42,43 @@ export class GCSFile extends AbstractFile {
     if (options.append && stats) {
       head = await this._load(options);
     }
+
     const file = await this.gfs._getEntry(path, false);
+    let metadata: { [key: string]: string } | undefined;
+    if (stats) {
+      const props = { ...stats };
+      delete props.size;
+      delete props.etag;
+      delete props.modified;
+      metadata = gfs._createMetadata(props);
+    }
+
     try {
-      let readable: Readable;
-      if (head) {
-        readable = await converter.merge([head, data], "Readable");
+      if (isNode) {
+        let readable: Readable;
+        if (head) {
+          readable = await converter.merge([head, data], "Readable");
+        } else {
+          readable = await converter.toReadable(data);
+        }
+        const writable = file.createWriteStream();
+        await converter.pipe(readable, writable);
+        if (metadata) {
+          await file.setMetadata(metadata);
+        }
       } else {
-        readable = await converter.toReadable(data);
+        let buffer: Buffer;
+        if (head) {
+          buffer = await converter.merge([head, data], "Buffer");
+        } else {
+          buffer = await converter.toBuffer(data);
+        }
+        if (metadata) {
+          await file.save(buffer, { metadata });
+        } else {
+          await file.save(buffer);
+        }
       }
-      const writable = file.createWriteStream();
-      await converter.pipe(readable, writable);
     } catch (e) {
       throw gfs._error(path, e, true);
     }

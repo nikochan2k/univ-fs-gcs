@@ -36,7 +36,7 @@ export class GCSFileSystem extends AbstractFileSystem {
 
   public _error(path: string, e: unknown, write: boolean) {
     let name: string;
-    const code: number = (e as any).code; // eslint-disable-line
+    const code: number = (e as any).response?.statusCode; // eslint-disable-line
     if (code === 404) {
       name = NotFoundError.name;
     } else if (write) {
@@ -60,7 +60,7 @@ export class GCSFileSystem extends AbstractFileSystem {
     const storage = new Storage(this.storageOptions);
     this.bucket = storage.bucket(this.bucketName);
     const key = this._getKey("/", true);
-    const root = this.bucket.file(key);
+    let root = this.bucket.file(key);
     try {
       await root.getMetadata();
       return this.bucket;
@@ -70,8 +70,9 @@ export class GCSFileSystem extends AbstractFileSystem {
         throw e;
       }
     }
+    root = this.bucket.file(key);
     try {
-      await root.create();
+      await root.save("");
     } catch (e) {
       throw this._error("/", e, true);
     }
@@ -109,8 +110,12 @@ export class GCSFileSystem extends AbstractFileSystem {
   }
 
   public async _head(path: string): Promise<Stats> {
-    const fileHead = this._getMetadata(path, true);
-    const dirHead = this._getMetadata(path, false);
+    if (path === "/") {
+      return {};
+    }
+
+    const fileHead = this._getMetadata(path, false);
+    const dirHead = this._getMetadata(path, true);
     const bucket = await this._getBucket();
     const dirList = bucket.getFiles({
       prefix: this._getKey(path, true),
@@ -137,18 +142,22 @@ export class GCSFileSystem extends AbstractFileSystem {
     throw this._error(path, fileHeadRes.reason, false);
   }
 
+  public _createMetadata(props: Props) {
+    const metadata: { [key: string]: string } = {};
+    for (const [key, value] of Object.entries(props)) {
+      metadata[key] = "" + value; // eslint-disable-line
+    }
+    return metadata;
+  }
+
   public async _patch(
     path: string,
     props: Props,
     _options: PatchOptions // eslint-disable-line
   ): Promise<void> {
-    const metadata = await this._getMetadata(path, true);
-    for (const [key, value] of Object.entries(props)) {
-      metadata[key] = "" + value; // eslint-disable-line
-    }
     const entry = await this._getEntry(path, props["size"] === null);
     try {
-      await entry.setMetadata(metadata);
+      await entry.setMetadata(this._createMetadata(props));
     } catch (e) {
       throw this._error(path, e, true);
     }
@@ -201,7 +210,7 @@ export class GCSFileSystem extends AbstractFileSystem {
     const stats: Stats = {};
     if (!isDirectory) {
       const size = parseInt(metadata["size"] as string);
-      if (size) {
+      if (size != null) {
         stats.size = size;
       }
     }
