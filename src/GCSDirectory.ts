@@ -15,7 +15,11 @@ export class GCSDirectory extends AbstractDirectory {
       const bucket = await gfs._getBucket();
       const res = await bucket.getFiles({ prefix, delimiter: "/" });
       for (const file of res[0]) {
-        const joined = joinPaths(path, file.name);
+        const name = file.name;
+        if (name === prefix) {
+          continue;
+        }
+        const joined = joinPaths(path, name);
         paths.push(joined);
       }
       return paths;
