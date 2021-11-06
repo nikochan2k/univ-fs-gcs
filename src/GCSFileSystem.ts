@@ -5,6 +5,7 @@ import {
   AbstractFileSystem,
   createError,
   FileSystemOptions,
+  HeadOptions,
   joinPaths,
   NoModificationAllowedError,
   NotFoundError,
@@ -125,19 +126,22 @@ export class GCSFileSystem extends AbstractFileSystem {
     }
   }
 
-  public async _head(path: string): Promise<Stats> {
-    if (path === "/") {
-      return {};
-    }
-
-    const fileHead = this._getMetadata(path, false);
-    const dirHead = this._getMetadata(path, true);
+  public async _head(path: string, options?: HeadOptions): Promise<Stats> {
+    options = { ...options };
+    const isFile = !options.type || options.type === "file";
+    const isDirectory = !options.type || options.type === "directory";
     const bucket = await this._getBucket();
-    const dirList = bucket.getFiles({
-      prefix: this._getKey(path, true),
-      delimiter: "/",
-      maxResults: 1,
-    });
+    const fileHead = isFile ? this._getMetadata(path, false) : Promise.reject();
+    const dirHead = isDirectory
+      ? this._getMetadata(path, true)
+      : Promise.reject();
+    const dirList = isDirectory
+      ? bucket.getFiles({
+          prefix: this._getKey(path, true),
+          delimiter: "/",
+          maxResults: 1,
+        })
+      : Promise.reject();
     const [fileHeadRes, dirHeadRes, dirListRes] = await Promise.allSettled([
       fileHead,
       dirHead,
@@ -149,13 +153,24 @@ export class GCSFileSystem extends AbstractFileSystem {
       const stats = this._handleHead(dirHeadRes.value, true);
       delete stats.size;
       return stats;
-    }
-    if (dirListRes.status === "fulfilled") {
+    } else if (dirListRes.status === "fulfilled") {
       if (0 < dirListRes.value[0].length) {
         return {};
       }
     }
-    throw this._error(path, fileHeadRes.reason, false);
+    let dirListReason: unknown | undefined;
+    if (dirListRes.status === "rejected") {
+      dirListReason = dirListRes.reason;
+    }
+    if (isFile) {
+      throw this._error(path, fileHeadRes.reason, false);
+    }
+    if (isDirectory) {
+      if (dirHeadRes.reason) {
+        throw this._error(path, dirHeadRes.reason, false);
+      }
+    }
+    throw this._error(path, dirListReason, false);
   }
 
   public async _patch(
