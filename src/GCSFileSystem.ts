@@ -34,6 +34,14 @@ export class GCSFileSystem extends AbstractFileSystem {
     super(repository, options);
   }
 
+  public _createMetadata(props: Props) {
+    const metadata: { [key: string]: string } = {};
+    for (const [key, value] of Object.entries(props)) {
+      metadata[key] = "" + value; // eslint-disable-line
+    }
+    return metadata;
+  }
+
   public _error(path: string, e: unknown, write: boolean) {
     let name: string;
     const code: number = (e as any).response?.statusCode; // eslint-disable-line
@@ -80,10 +88,18 @@ export class GCSFileSystem extends AbstractFileSystem {
     return this.bucket;
   }
 
+  public async _getDirectory(path: string): Promise<AbstractDirectory> {
+    return Promise.resolve(new GCSDirectory(this, path));
+  }
+
   public async _getEntry(path: string, isDirectory: boolean) {
     const bucket = await this._getBucket();
     const key = this._getKey(path, isDirectory);
     return bucket.file(key);
+  }
+
+  public async _getFile(path: string): Promise<AbstractFile> {
+    return Promise.resolve(new GCSFile(this, path));
   }
 
   public _getKey(path: string, isDirectory: boolean) {
@@ -142,14 +158,6 @@ export class GCSFileSystem extends AbstractFileSystem {
     throw this._error(path, fileHeadRes.reason, false);
   }
 
-  public _createMetadata(props: Props) {
-    const metadata: { [key: string]: string } = {};
-    for (const [key, value] of Object.entries(props)) {
-      metadata[key] = "" + value; // eslint-disable-line
-    }
-    return metadata;
-  }
-
   public async _patch(
     path: string,
     props: Props,
@@ -193,14 +201,6 @@ export class GCSFileSystem extends AbstractFileSystem {
     } catch (e) {
       throw this._error(path, e, false);
     }
-  }
-
-  public async getDirectory(path: string): Promise<AbstractDirectory> {
-    return Promise.resolve(new GCSDirectory(this, path));
-  }
-
-  public async getFile(path: string): Promise<AbstractFile> {
-    return Promise.resolve(new GCSFile(this, path));
   }
 
   private _handleHead(
