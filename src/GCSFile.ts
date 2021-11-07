@@ -8,9 +8,8 @@ export class GCSFile extends AbstractFile {
     super(gfs, path);
   }
 
-  protected async _load(
-    _options: OpenOptions // eslint-disable-line
-  ): Promise<Data> {
+  // eslint-disable-next-line
+  protected async _load(_stats: Stats, _options: OpenOptions): Promise<Data> {
     const file = await this.gfs._getEntry(this.path, false);
     if (isNode) {
       return file.createReadStream();
@@ -42,7 +41,7 @@ export class GCSFile extends AbstractFile {
 
     let head: Data | undefined;
     if (options.append && stats) {
-      head = await this._load(options);
+      head = await this._load(stats, options);
     }
 
     const file = await this.gfs._getEntry(path, false);
