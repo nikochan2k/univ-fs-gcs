@@ -13,12 +13,14 @@ export class GCSDirectory extends AbstractDirectory {
     try {
       const prefix = gfs._getKey(path, true);
       const bucket = await gfs._getBucket();
+      // eslint-disable-next-line
       const [files, , apiResponse] = await bucket.getFiles({
         autoPaginate: false,
         prefix,
         delimiter: "/",
       });
-      for (const dir of apiResponse?.prefixes ?? []) {
+      const prefixes = (apiResponse?.prefixes ?? []) as string[]; // eslint-disable-line
+      for (const dir of prefixes) {
         if (prefix === dir) {
           continue;
         }
