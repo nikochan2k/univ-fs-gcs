@@ -5,7 +5,8 @@ import { GCSFileSystem } from "../GCSFileSystem";
 export const fs = new GCSFileSystem("nikochan2k-test", "univ-fs-test", {
   keyFilename: "secret.json",
 });
-export const init = async () => {
+
+export const setup = async () => {
   try {
     const storage = new Storage({ keyFilename: "secret.json" });
     const bucket = storage.bucket("nikochan2k-test");
@@ -16,3 +17,5 @@ export const init = async () => {
     }
   }
 };
+
+export const teardown = async () => {};

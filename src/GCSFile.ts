@@ -1,3 +1,4 @@
+import { Readable } from "stream";
 import { Converter, Data, isNode } from "univ-conv";
 import { AbstractFile, OpenOptions, Stats, WriteOptions } from "univ-fs";
 import { GCSFileSystem } from "./GCSFileSystem";
@@ -55,7 +56,6 @@ export class GCSFile extends AbstractFile {
     */
 
     try {
-      /*
       if (isNode) {
         let readable: Readable;
         if (head) {
@@ -65,26 +65,27 @@ export class GCSFile extends AbstractFile {
         }
         const writable = file.createWriteStream();
         await converter.pipe(readable, writable);
+        /*
         if (metadata) {
           await file.setMetadata(metadata);
         }
+        */
       } else {
-      */
-      let buffer: Buffer;
-      if (head) {
-        buffer = await converter.merge([head, data], "Buffer");
-      } else {
-        buffer = await converter.toBuffer(data);
-      }
-      await file.save(buffer);
-      /*
-      if (metadata) {
-        await file.save(buffer, { metadata });
-      } else {
+        let buffer: Buffer;
+        if (head) {
+          buffer = await converter.merge([head, data], "Buffer");
+        } else {
+          buffer = await converter.toBuffer(data);
+        }
         await file.save(buffer);
+        /*
+        if (metadata) {
+          await file.save(buffer, { metadata });
+        } else {
+          await file.save(buffer);
+        }
+        */
       }
-      */
-      //}
     } catch (e) {
       throw gfs._error(path, e, true);
     }
