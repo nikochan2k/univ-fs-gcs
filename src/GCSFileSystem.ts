@@ -38,6 +38,9 @@ export class GCSFileSystem extends AbstractFileSystem {
   public _createMetadata(props: Props) {
     const metadata: { [key: string]: string } = {};
     for (const [key, value] of Object.entries(props)) {
+      if (0 <= ["size", "etag", "created", "modified"].indexOf(key)) {
+        continue;
+      }
       metadata[key] = "" + value; // eslint-disable-line
     }
     return metadata;
@@ -180,7 +183,9 @@ export class GCSFileSystem extends AbstractFileSystem {
   ): Promise<void> {
     const entry = await this._getEntry(path, props["size"] === null);
     try {
-      await entry.setMetadata(this._createMetadata(props));
+      const [obj] = await entry.getMetadata(); // eslint-disable-line
+      obj.metadata = this._createMetadata(props); // eslint-disable-line
+      await entry.setMetadata(obj);
     } catch (e) {
       throw this._error(path, e, true);
     }
@@ -203,7 +208,7 @@ export class GCSFileSystem extends AbstractFileSystem {
       default:
         throw this._error(
           path,
-          { message: `"${options.urlType}" is not supported` },
+          { message: `"${options.urlType}" is not supported` }, // eslint-disable-line
           false
         );
     }
@@ -218,36 +223,31 @@ export class GCSFileSystem extends AbstractFileSystem {
     }
   }
 
-  private _handleHead(
-    metadata: { [key: string]: string },
-    isDirectory: boolean
-  ) {
+  /* eslint-disable */
+  private _handleHead(obj: any, isDirectory: boolean) {
     const stats: Stats = {};
-    if (!isDirectory) {
-      const size = parseInt(metadata["size"] as string);
-      if (size != null) {
-        stats.size = size;
-      }
+    for (const [key, value] of obj.metadata ?? {}) {
+      stats[key] = value;
     }
-    const created = new Date(metadata["timeCreated"] as string).getTime();
+    if (isDirectory) {
+      delete stats.size;
+    } else {
+      stats.size = parseInt(obj["size"] as string);
+    }
+    const created = new Date(obj["timeCreated"] as string).getTime();
     if (created) {
       stats.created = created;
     }
-    const modified = new Date(metadata["updated"] as string).getTime();
+    const modified = new Date(obj["updated"] as string).getTime();
     if (modified) {
       stats.modified = modified;
     }
-    const etag = metadata["etag"];
+    const etag = obj["etag"];
     if (etag) {
       stats.etag = etag;
-    }
-    for (const [key, value] of Object.entries(metadata ?? {})) {
-      if (key === "size" || key === "etag") {
-        continue;
-      }
-      stats[key] = value;
     }
 
     return stats;
   }
+  /* eslint-enable */
 }

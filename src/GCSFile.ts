@@ -8,7 +8,9 @@ export class GCSFile extends AbstractFile {
     super(gfs, path);
   }
 
-  protected async _load(_options: OpenOptions): Promise<Data> {
+  protected async _load(
+    _options: OpenOptions // eslint-disable-line
+  ): Promise<Data> {
     const file = await this.gfs._getEntry(this.path, false);
     if (isNode) {
       return file.createReadStream();
@@ -43,17 +45,12 @@ export class GCSFile extends AbstractFile {
       head = await this._load(options);
     }
 
-    let file = await this.gfs._getEntry(path, false);
-    /*
-    let metadata: { [key: string]: string } | undefined;
+    const file = await this.gfs._getEntry(path, false);
     if (stats) {
-      const props = { ...stats };
-      delete props.size;
-      delete props.etag;
-      delete props.modified;
-      metadata = gfs._createMetadata(props);
+      const [obj] = await file.getMetadata(); // eslint-disable-line
+      obj.metadata = gfs._createMetadata(stats); // eslint-disable-line
+      await file.setMetadata(obj);
     }
-    */
 
     try {
       if (isNode) {
@@ -65,11 +62,6 @@ export class GCSFile extends AbstractFile {
         }
         const writable = file.createWriteStream();
         await converter.pipe(readable, writable);
-        /*
-        if (metadata) {
-          await file.setMetadata(metadata);
-        }
-        */
       } else {
         let buffer: Buffer;
         if (head) {
@@ -78,13 +70,6 @@ export class GCSFile extends AbstractFile {
           buffer = await converter.toBuffer(data);
         }
         await file.save(buffer);
-        /*
-        if (metadata) {
-          await file.save(buffer, { metadata });
-        } else {
-          await file.save(buffer);
-        }
-        */
       }
     } catch (e) {
       throw gfs._error(path, e, true);
