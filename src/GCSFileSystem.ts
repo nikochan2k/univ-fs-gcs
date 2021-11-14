@@ -191,7 +191,11 @@ export class GCSFileSystem extends AbstractFileSystem {
     }
   }
 
-  public async _toURL(path: string, options?: URLOptions): Promise<string> {
+  public async _toURL(
+    path: string,
+    _isDirectory: boolean,
+    options?: URLOptions
+  ): Promise<string> {
     options = { urlType: "GET", expires: 86400, ...options };
     let action: "read" | "write" | "delete";
     switch (options.urlType) {
@@ -225,9 +229,10 @@ export class GCSFileSystem extends AbstractFileSystem {
 
   /* eslint-disable */
   private _handleHead(obj: any, isDirectory: boolean) {
+    const metadata = obj.metadata ?? {};
     const stats: Stats = {};
-    for (const [key, value] of obj.metadata ?? {}) {
-      stats[key] = value;
+    for (const [key, value] of Object.entries(metadata)) {
+      stats[key] = value as string;
     }
     if (isDirectory) {
       delete stats.size;

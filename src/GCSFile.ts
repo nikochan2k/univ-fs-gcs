@@ -1,5 +1,5 @@
 import { Readable } from "stream";
-import { Converter, Data, isNode } from "univ-conv";
+import { Converter, Data, isNode, isReadable } from "univ-conv";
 import { AbstractFile, OpenOptions, Stats, WriteOptions } from "univ-fs";
 import { GCSFileSystem } from "./GCSFileSystem";
 
@@ -52,7 +52,7 @@ export class GCSFile extends AbstractFile {
     }
 
     try {
-      if (isNode) {
+      if (isReadable(head) || isReadable(data)) {
         let readable: Readable;
         if (head) {
           readable = await converter.merge([head, data], "Readable");
