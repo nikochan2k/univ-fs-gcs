@@ -45,24 +45,10 @@ export class GCSDirectory extends AbstractDirectory {
   }
 
   public async _mkcol(): Promise<void> {
-    const gfs = this.gfs;
-    const path = this.path;
-    const dir = await gfs._getEntry(path, true);
-    try {
-      await dir.save("");
-    } catch (e) {
-      throw gfs._error(path, e, true);
-    }
+    return Promise.resolve();
   }
 
   public async _rmdir(): Promise<void> {
-    const gfs = this.gfs;
-    const path = this.path;
-    const dir = await gfs._getEntry(path, true);
-    try {
-      await dir.delete();
-    } catch (e) {
-      throw gfs._error(path, e, true);
-    }
+    return Promise.resolve();
   }
 }
