@@ -11,7 +11,7 @@ export class GCSDirectory extends AbstractDirectory {
     const path = this.path;
     const paths: string[] = [];
     try {
-      const prefix = gfs._getKey(path, true);
+      const prefix = gfs._getFullPath(path, true);
       const bucket = gfs._getBucket();
       // eslint-disable-next-line
       const [files, , apiResponse] = await bucket.getFiles({
@@ -26,7 +26,7 @@ export class GCSDirectory extends AbstractDirectory {
         }
         const parts = dir.split("/");
         const name = parts[parts.length - 2] as string;
-        const joined = joinPaths(path, name);
+        const joined = joinPaths(path, name) + "/";
         paths.push(joined);
       }
       for (const file of files ?? []) {

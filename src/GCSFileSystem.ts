@@ -74,31 +74,31 @@ export class GCSFileSystem extends AbstractFileSystem {
     return this.bucket;
   }
 
-  public async _getDirectory(path: string): Promise<AbstractDirectory> {
+  public _getDirectory(path: string): Promise<AbstractDirectory> {
     return Promise.resolve(new GCSDirectory(this, path));
   }
 
   public _getEntry(path: string, isDirectory: boolean) {
     const bucket = this._getBucket();
-    const key = this._getKey(path, isDirectory);
-    return bucket.file(key);
+    const fullPath = this._getFullPath(path, isDirectory);
+    return bucket.file(fullPath);
   }
 
-  public async _getFile(path: string): Promise<AbstractFile> {
+  public _getFile(path: string): Promise<AbstractFile> {
     return Promise.resolve(new GCSFile(this, path));
   }
 
-  public _getKey(path: string, isDirectory: boolean) {
-    let key: string;
+  public _getFullPath(path: string, isDirectory: boolean) {
+    let fullPath: string;
     if (!path || path === "/") {
-      key = this.repository;
+      fullPath = this.repository;
     } else {
-      key = joinPaths(this.repository, path, false);
+      fullPath = joinPaths(this.repository, path, false);
     }
     if (isDirectory) {
-      key += "/";
+      fullPath += "/";
     }
-    return key;
+    return fullPath;
   }
 
   public async _getMetadata(path: string, isDirectory: boolean) {

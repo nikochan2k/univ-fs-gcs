@@ -10,20 +10,26 @@ export class GCSFile extends AbstractFile {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected async _load(_stats: Stats, _options: ReadOptions): Promise<Data> {
-    const file = this.gfs._getEntry(this.path, false);
-    if (hasReadable) {
-      return file.createReadStream();
-    } else {
-      const res = await file.download();
-      return res[0];
+    const gfs = this.gfs;
+    const path = this.path;
+    try {
+      const file = gfs._getEntry(path, false);
+      if (hasReadable) {
+        return file.createReadStream();
+      } else {
+        const res = await file.download();
+        return res[0];
+      }
+    } catch (e) {
+      throw gfs._error(path, e, false);
     }
   }
 
   protected async _rm(): Promise<void> {
     const gfs = this.gfs;
     const path = this.path;
-    const file = this.gfs._getEntry(path, false);
     try {
+      const file = this.gfs._getEntry(path, false);
       await file.delete();
     } catch (e) {
       throw gfs._error(path, e, true);
