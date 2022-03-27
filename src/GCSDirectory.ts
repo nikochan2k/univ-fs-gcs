@@ -12,7 +12,7 @@ export class GCSDirectory extends AbstractDirectory {
     const paths: string[] = [];
     try {
       const prefix = gfs._getKey(path, true);
-      const bucket = await gfs._getBucket();
+      const bucket = gfs._getBucket();
       // eslint-disable-next-line
       const [files, , apiResponse] = await bucket.getFiles({
         autoPaginate: false,

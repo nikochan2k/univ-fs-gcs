@@ -64,31 +64,13 @@ export class GCSFileSystem extends AbstractFileSystem {
     });
   }
 
-  public async _getBucket() {
+  public _getBucket() {
     if (this.bucket) {
       return this.bucket;
     }
 
     const storage = new Storage(this.storageOptions);
     this.bucket = storage.bucket(this.bucketName);
-    const key = this._getKey("/", true);
-    let root = this.bucket.file(key);
-    try {
-      await root.getMetadata();
-      return this.bucket;
-    } catch (e) {
-      const err = this._error("/", e, false);
-      if (err.name !== NotFoundError.name) {
-        throw e;
-      }
-    }
-    root = this.bucket.file(key);
-    try {
-      await root.save("");
-    } catch (e) {
-      throw this._error("/", e, true);
-    }
-
     return this.bucket;
   }
 
@@ -96,8 +78,8 @@ export class GCSFileSystem extends AbstractFileSystem {
     return Promise.resolve(new GCSDirectory(this, path));
   }
 
-  public async _getEntry(path: string, isDirectory: boolean) {
-    const bucket = await this._getBucket();
+  public _getEntry(path: string, isDirectory: boolean) {
+    const bucket = this._getBucket();
     const key = this._getKey(path, isDirectory);
     return bucket.file(key);
   }
@@ -120,7 +102,7 @@ export class GCSFileSystem extends AbstractFileSystem {
   }
 
   public async _getMetadata(path: string, isDirectory: boolean) {
-    const entry = await this._getEntry(path, isDirectory);
+    const entry = this._getEntry(path, isDirectory);
     try {
       const res = await entry.getMetadata();
       return res[0] as { [key: string]: string };
@@ -129,51 +111,14 @@ export class GCSFileSystem extends AbstractFileSystem {
     }
   }
 
-  public async _head(path: string, options?: HeadOptions): Promise<Stats> {
-    options = { ...options };
-    const isFile = !options.type || options.type === "file";
-    const isDirectory = !options.type || options.type === "directory";
-    const bucket = await this._getBucket();
-    const fileHead = isFile ? this._getMetadata(path, false) : Promise.reject();
-    const dirHead = isDirectory
-      ? this._getMetadata(path, true)
-      : Promise.reject();
-    const dirList = isDirectory
-      ? bucket.getFiles({
-          prefix: this._getKey(path, true),
-          delimiter: "/",
-          maxResults: 1,
-        })
-      : Promise.reject();
-    const [fileHeadRes, dirHeadRes, dirListRes] = await Promise.allSettled([
-      fileHead,
-      dirHead,
-      dirList,
-    ]);
-    if (fileHeadRes.status === "fulfilled") {
-      return this._handleHead(fileHeadRes.value, false);
-    } else if (dirHeadRes.status === "fulfilled") {
-      const stats = this._handleHead(dirHeadRes.value, true);
-      delete stats.size;
-      return stats;
-    } else if (dirListRes.status === "fulfilled") {
-      if (0 < dirListRes.value[0].length) {
-        return {};
-      }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public async _head(path: string, _?: HeadOptions): Promise<Stats> {
+    try {
+      const res = await this._getMetadata(path, false);
+      return this._handleHead(res);
+    } catch (e) {
+      throw this._error(path, e, false);
     }
-    let dirListReason: unknown | undefined;
-    if (dirListRes.status === "rejected") {
-      dirListReason = dirListRes.reason;
-    }
-    if (isFile) {
-      throw this._error(path, fileHeadRes.reason, false);
-    }
-    if (isDirectory) {
-      if (dirHeadRes.reason) {
-        throw this._error(path, dirHeadRes.reason, false);
-      }
-    }
-    throw this._error(path, dirListReason, false);
   }
 
   public async _patch(
@@ -181,7 +126,7 @@ export class GCSFileSystem extends AbstractFileSystem {
     props: Props,
     _options: PatchOptions // eslint-disable-line
   ): Promise<void> {
-    const entry = await this._getEntry(path, props["size"] === null);
+    const entry = this._getEntry(path, props["size"] === null);
     try {
       const [obj] = await entry.getMetadata(); // eslint-disable-line
       obj.metadata = this._createMetadata(props); // eslint-disable-line
@@ -217,7 +162,7 @@ export class GCSFileSystem extends AbstractFileSystem {
         );
     }
 
-    const file = await this._getEntry(path, true);
+    const file = this._getEntry(path, false);
     try {
       const expires = new Date(Date.now() + (options.expires ?? 86400) * 1000);
       const res = await file.getSignedUrl({ action, expires });
@@ -227,18 +172,18 @@ export class GCSFileSystem extends AbstractFileSystem {
     }
   }
 
+  public supportDirectory(): boolean {
+    return false;
+  }
+
   /* eslint-disable */
-  private _handleHead(obj: any, isDirectory: boolean) {
+  private _handleHead(obj: any) {
     const metadata = obj.metadata ?? {};
     const stats: Stats = {};
     for (const [key, value] of Object.entries(metadata)) {
       stats[key] = value as string;
     }
-    if (isDirectory) {
-      delete stats.size;
-    } else {
-      stats.size = parseInt(obj["size"] as string);
-    }
+    stats.size = parseInt(obj["size"] as string);
     const created = new Date(obj["timeCreated"] as string).getTime();
     if (created) {
       stats.created = created;
@@ -254,5 +199,6 @@ export class GCSFileSystem extends AbstractFileSystem {
 
     return stats;
   }
+
   /* eslint-enable */
 }
