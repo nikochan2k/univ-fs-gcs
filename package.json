@@ -61,7 +61,7 @@
   "dependencies": {
     "@google-cloud/storage": "^5.18.2",
     "tslib": "^2.3.1",
-    "univ-fs": "^0.6.18"
+    "univ-fs": "^0.6.26"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"

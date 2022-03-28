@@ -1,4 +1,4 @@
-import { AbstractDirectory, joinPaths } from "univ-fs";
+import { AbstractDirectory, EntryType, Item, joinPaths } from "univ-fs";
 import { GCSFileSystem } from "./GCSFileSystem";
 
 export class GCSDirectory extends AbstractDirectory {
@@ -6,12 +6,11 @@ export class GCSDirectory extends AbstractDirectory {
     super(gfs, path);
   }
 
-  public async _list(): Promise<string[]> {
+  public async _list(): Promise<Item[]> {
     const gfs = this.gfs;
-    const path = this.path;
-    const paths: string[] = [];
+    const items: Item[] = [];
     try {
-      const prefix = gfs._getFullPath(path, true);
+      const prefix = gfs._getFullPath(this.path, true);
       const bucket = gfs._getBucket();
       // eslint-disable-next-line
       const [files, , apiResponse] = await bucket.getFiles({
@@ -26,8 +25,8 @@ export class GCSDirectory extends AbstractDirectory {
         }
         const parts = dir.split("/");
         const name = parts[parts.length - 2] as string;
-        const joined = joinPaths(path, name) + "/";
-        paths.push(joined);
+        const path = joinPaths(this.path, name);
+        items.push({ path, type: EntryType.Directory });
       }
       for (const file of files ?? []) {
         if (prefix === file.name) {
@@ -35,12 +34,12 @@ export class GCSDirectory extends AbstractDirectory {
         }
         const parts = file.name.split("/");
         const name = parts[parts.length - 1] as string;
-        const joined = joinPaths(path, name);
-        paths.push(joined);
+        const path = joinPaths(this.path, name);
+        items.push({ path, type: EntryType.File });
       }
-      return paths;
+      return items;
     } catch (e) {
-      throw gfs._error(path, e, false);
+      throw gfs._error(this.path, e, false);
     }
   }
 
