@@ -104,6 +104,6 @@ dist
 .tern-port
 
 lib/
-secret.json
+**/secret*.json
 tsconfig.tsbuildinfo
 .DS_Store
