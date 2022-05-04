@@ -37,9 +37,7 @@ export class GCSFileSystem extends AbstractFileSystem {
   public _createMetadata(props: Stats) {
     const metadata: { [key: string]: string } = {};
     for (const [key, value] of Object.entries(props)) {
-      if (0 <= ["size", "etag", "created", "modified"].indexOf(key)) {
-        continue;
-      }
+      if (!value) continue;
       metadata[key] = "" + value; // eslint-disable-line
     }
     return metadata;
