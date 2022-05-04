@@ -1,6 +1,6 @@
 {
   "name": "univ-fs-gcs",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "description": "The universal Filesystem API for Google Cloud Storage",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -17,51 +17,41 @@
     "google"
   ],
   "scripts": {
-    "clean": "rimraf ./lib",
+    "clean": "rimraf ./lib ./tsconfig.tsbuildinfo",
     "compile": "tsc",
     "build": "npm-run-all clean compile",
     "npm-version": "npm version patch",
     "npm-publish": "npm publish",
-    "release": "npm-run-all clean compile npm-version npm-publish",
-    "test": "jest --runInBand"
+    "release": "npm-run-all build npm-version npm-publish",
+    "jest": "jest --runInBand",
+    "test": "npm-run-all compile jest"
   },
   "jest": {
     "moduleFileExtensions": [
-      "js",
-      "ts",
-      "tsx"
+      "js"
     ],
-    "transform": {
-      "^.+\\.(ts|tsx)$": "ts-jest"
-    },
-    "globals": {
-      "ts-jest": {
-        "tsconfig": "tsconfig.json"
-      }
-    },
     "testMatch": [
-      "<rootDir>/src/__tests__/**/*.spec.+(ts|tsx|js)"
-    ],
-    "preset": "ts-jest"
+      "<rootDir>/lib/__tests__/**/*.spec.js"
+    ]
   },
   "devDependencies": {
-    "@types/jest": "^27.4.1",
-    "@types/node": "^17.0.23",
-    "@typescript-eslint/eslint-plugin": "^5.16.0",
-    "@typescript-eslint/parser": "^5.16.0",
-    "eslint": "^8.12.0",
+    "@types/jest": "^27.5.0",
+    "@types/node": "^17.0.31",
+    "@typescript-eslint/eslint-plugin": "^5.22.0",
+    "@typescript-eslint/parser": "^5.22.0",
+    "eslint": "^8.14.0",
     "eslint-config-prettier": "^8.5.0",
-    "jest": "^27.5.1",
+    "jest": "^28.0.3",
     "npm-run-all": "^4.1.5",
-    "prettier": "^2.6.1",
+    "prettier": "^2.6.2",
     "rimraf": "^3.0.2",
-    "ts-jest": "^27.1.4",
-    "typescript": "^4.6.3"
+    "ts-jest": "^28.0.1",
+    "typescript": "^4.6.4"
   },
   "dependencies": {
-    "@google-cloud/storage": "^5.18.2",
-    "tslib": "^2.3.1",
-    "univ-fs": "^0.6.26"
+    "@google-cloud/storage": "^5.19.4",
+    "tslib": "^2.4.0",
+    "univ-fs": "^0.7.19"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"
