@@ -11,7 +11,6 @@ import {
   NotFoundError,
   NotReadableError,
   PatchOptions,
-  Props,
   Stats,
   URLOptions,
 } from "univ-fs";
@@ -35,7 +34,7 @@ export class GCSFileSystem extends AbstractFileSystem {
     super(repository, options);
   }
 
-  public _createMetadata(props: Props) {
+  public _createMetadata(props: Stats) {
     const metadata: { [key: string]: string } = {};
     for (const [key, value] of Object.entries(props)) {
       if (0 <= ["size", "etag", "created", "modified"].indexOf(key)) {
@@ -50,11 +49,11 @@ export class GCSFileSystem extends AbstractFileSystem {
     let name: string;
     const code: number = (e as any).response?.statusCode; // eslint-disable-line
     if (code === 404) {
-      name = NotFoundError.name;
+      name = NotFoundError.name as string;
     } else if (write) {
-      name = NoModificationAllowedError.name;
+      name = NoModificationAllowedError.name as string;
     } else {
-      name = NotReadableError.name;
+      name = NotReadableError.name as string;
     }
     return createError({
       name,
@@ -123,7 +122,8 @@ export class GCSFileSystem extends AbstractFileSystem {
 
   public async _patch(
     path: string,
-    props: Props,
+    _stats: Stats,
+    props: Stats,
     _options: PatchOptions // eslint-disable-line
   ): Promise<void> {
     const entry = this._getEntry(path, props["size"] === null);
@@ -170,6 +170,18 @@ export class GCSFileSystem extends AbstractFileSystem {
     } catch (e) {
       throw this._error(path, e, false);
     }
+  }
+
+  public canPatchAccessed(): boolean {
+    return false;
+  }
+
+  public canPatchCreated(): boolean {
+    return false;
+  }
+
+  public canPatchModified(): boolean {
+    return false;
   }
 
   public supportDirectory(): boolean {

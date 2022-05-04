@@ -1,4 +1,3 @@
-import { Readable } from "stream";
 import { Data, hasReadable, readableConverter } from "univ-conv";
 import { AbstractFile, ReadOptions, Stats, WriteOptions } from "univ-fs";
 import { GCSFileSystem } from "./GCSFileSystem";
@@ -6,6 +5,18 @@ import { GCSFileSystem } from "./GCSFileSystem";
 export class GCSFile extends AbstractFile {
   constructor(private gfs: GCSFileSystem, path: string) {
     super(gfs, path);
+  }
+
+  public supportAppend(): boolean {
+    return false;
+  }
+
+  public supportRangeRead(): boolean {
+    return false;
+  }
+
+  public supportRangeWrite(): boolean {
+    return false;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -45,11 +56,6 @@ export class GCSFile extends AbstractFile {
     const path = this.path;
     const converter = this._getConverter();
 
-    let head: Data | undefined;
-    if (options.append && stats) {
-      head = await this._load(stats, options);
-    }
-
     const file = this.gfs._getEntry(path, false);
     if (stats) {
       const [obj] = await file.getMetadata(); // eslint-disable-line
@@ -58,25 +64,12 @@ export class GCSFile extends AbstractFile {
     }
 
     try {
-      if (
-        readableConverter().typeEquals(head) || // eslint-disable-line
-        readableConverter().typeEquals(data) // eslint-disable-line
-      ) {
-        let readable: Readable;
-        if (head) {
-          readable = await converter.merge([head, data], "readable", options);
-        } else {
-          readable = await converter.toReadable(data, options);
-        }
+      if (readableConverter().typeEquals(data)) {
+        const readable = await converter.toReadable(data, options);
         const writable = file.createWriteStream();
         await converter.pipe(readable, writable, options);
       } else {
-        let buffer: Buffer;
-        if (head) {
-          buffer = await converter.merge([head, data], "buffer", options);
-        } else {
-          buffer = await converter.toBuffer(data);
-        }
+        const buffer = await converter.toBuffer(data);
         await file.save(buffer);
       }
     } catch (e) {
