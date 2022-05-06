@@ -6,7 +6,7 @@ export class GCSDirectory extends AbstractDirectory {
     super(gfs, path);
   }
 
-  public async _list(): Promise<Item[]> {
+  public async _doList(): Promise<Item[]> {
     const gfs = this.gfs;
     const items: Item[] = [];
     try {
@@ -43,11 +43,11 @@ export class GCSDirectory extends AbstractDirectory {
     }
   }
 
-  public async _mkcol(): Promise<void> {
+  public async _doMkcol(): Promise<void> {
     return Promise.resolve();
   }
 
-  public async _rmdir(): Promise<void> {
+  public async _doRmdir(): Promise<void> {
     return Promise.resolve();
   }
 }

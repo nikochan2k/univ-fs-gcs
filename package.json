@@ -1,6 +1,6 @@
 {
   "name": "univ-fs-gcs",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "The universal Filesystem API for Google Cloud Storage",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -41,7 +41,7 @@
     "@typescript-eslint/parser": "^5.22.0",
     "eslint": "^8.14.0",
     "eslint-config-prettier": "^8.5.0",
-    "jest": "^28.0.3",
+    "jest": "^28.1.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.6.2",
     "rimraf": "^3.0.2",
@@ -51,7 +51,7 @@
   "dependencies": {
     "@google-cloud/storage": "^5.19.4",
     "tslib": "^2.4.0",
-    "univ-fs": "^0.7.19"
+    "univ-fs": "^0.8.9"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"

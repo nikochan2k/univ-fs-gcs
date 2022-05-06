@@ -7,20 +7,8 @@ export class GCSFile extends AbstractFile {
     super(gfs, path);
   }
 
-  public supportAppend(): boolean {
-    return false;
-  }
-
-  public supportRangeRead(): boolean {
-    return false;
-  }
-
-  public supportRangeWrite(): boolean {
-    return false;
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  protected async _load(_stats: Stats, _options: ReadOptions): Promise<Data> {
+  public async _doRead(_stats: Stats, _options: ReadOptions): Promise<Data> {
     const gfs = this.gfs;
     const path = this.path;
     try {
@@ -36,7 +24,7 @@ export class GCSFile extends AbstractFile {
     }
   }
 
-  protected async _rm(): Promise<void> {
+  public async _doRm(): Promise<void> {
     const gfs = this.gfs;
     const path = this.path;
     try {
@@ -47,21 +35,15 @@ export class GCSFile extends AbstractFile {
     }
   }
 
-  protected async _save(
+  public async _doWrite(
     data: Data,
-    stats: Stats | undefined,
+    _stats: Stats | undefined,
     options: WriteOptions
   ): Promise<void> {
     const gfs = this.gfs;
     const path = this.path;
     const converter = this._getConverter();
-
     const file = this.gfs._getEntry(path, false);
-    if (stats) {
-      const [obj] = await file.getMetadata(); // eslint-disable-line
-      obj.metadata = gfs._createMetadata(stats); // eslint-disable-line
-      await file.setMetadata(obj);
-    }
 
     try {
       if (readableConverter().typeEquals(data)) {
@@ -75,5 +57,17 @@ export class GCSFile extends AbstractFile {
     } catch (e) {
       throw gfs._error(path, e, true);
     }
+  }
+
+  public supportAppend(): boolean {
+    return false;
+  }
+
+  public supportRangeRead(): boolean {
+    return false;
+  }
+
+  public supportRangeWrite(): boolean {
+    return false;
   }
 }

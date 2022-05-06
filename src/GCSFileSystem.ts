@@ -43,73 +43,16 @@ export class GCSFileSystem extends AbstractFileSystem {
     return metadata;
   }
 
-  public _error(path: string, e: unknown, write: boolean) {
-    let name: string;
-    const code: number = (e as any).response?.statusCode; // eslint-disable-line
-    if (code === 404) {
-      name = NotFoundError.name as string;
-    } else if (write) {
-      name = NoModificationAllowedError.name as string;
-    } else {
-      name = NotReadableError.name as string;
-    }
-    return createError({
-      name,
-      repository: this.repository,
-      path,
-      e: e as any, // eslint-disable-line
-    });
-  }
-
-  public _getBucket() {
-    if (this.bucket) {
-      return this.bucket;
-    }
-
-    const storage = new Storage(this.storageOptions);
-    this.bucket = storage.bucket(this.bucketName);
-    return this.bucket;
-  }
-
-  public _getDirectory(path: string): Promise<AbstractDirectory> {
+  public _doGetDirectory(path: string): Promise<AbstractDirectory> {
     return Promise.resolve(new GCSDirectory(this, path));
   }
 
-  public _getEntry(path: string, isDirectory: boolean) {
-    const bucket = this._getBucket();
-    const fullPath = this._getFullPath(path, isDirectory);
-    return bucket.file(fullPath);
-  }
-
-  public _getFile(path: string): Promise<AbstractFile> {
+  public _doGetFile(path: string): Promise<AbstractFile> {
     return Promise.resolve(new GCSFile(this, path));
   }
 
-  public _getFullPath(path: string, isDirectory: boolean) {
-    let fullPath: string;
-    if (!path || path === "/") {
-      fullPath = this.repository;
-    } else {
-      fullPath = joinPaths(this.repository, path, false);
-    }
-    if (isDirectory) {
-      fullPath += "/";
-    }
-    return fullPath;
-  }
-
-  public async _getMetadata(path: string, isDirectory: boolean) {
-    const entry = this._getEntry(path, isDirectory);
-    try {
-      const res = await entry.getMetadata();
-      return res[0] as { [key: string]: string };
-    } catch (e) {
-      throw this._error(path, e, false);
-    }
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public async _head(path: string, _?: HeadOptions): Promise<Stats> {
+  public async _doHead(path: string, _?: HeadOptions): Promise<Stats> {
     try {
       const res = await this._getMetadata(path, false);
       return this._handleHead(res);
@@ -118,7 +61,7 @@ export class GCSFileSystem extends AbstractFileSystem {
     }
   }
 
-  public async _patch(
+  public async _doPatch(
     path: string,
     _stats: Stats,
     props: Stats,
@@ -134,7 +77,7 @@ export class GCSFileSystem extends AbstractFileSystem {
     }
   }
 
-  public async _toURL(
+  public async _doToURL(
     path: string,
     _isDirectory: boolean,
     options?: URLOptions
@@ -165,6 +108,63 @@ export class GCSFileSystem extends AbstractFileSystem {
       const expires = new Date(Date.now() + (options.expires ?? 86400) * 1000);
       const res = await file.getSignedUrl({ action, expires });
       return res[0];
+    } catch (e) {
+      throw this._error(path, e, false);
+    }
+  }
+
+  public _error(path: string, e: unknown, write: boolean) {
+    let name: string;
+    const code: number = (e as any).response?.statusCode; // eslint-disable-line
+    if (code === 404) {
+      name = NotFoundError.name;
+    } else if (write) {
+      name = NoModificationAllowedError.name;
+    } else {
+      name = NotReadableError.name;
+    }
+    return createError({
+      name,
+      repository: this.repository,
+      path,
+      e: e as any, // eslint-disable-line
+    });
+  }
+
+  public _getBucket() {
+    if (this.bucket) {
+      return this.bucket;
+    }
+
+    const storage = new Storage(this.storageOptions);
+    this.bucket = storage.bucket(this.bucketName);
+    return this.bucket;
+  }
+
+  public _getEntry(path: string, isDirectory: boolean) {
+    const bucket = this._getBucket();
+    const fullPath = this._getFullPath(path, isDirectory);
+    return bucket.file(fullPath);
+  }
+
+  public _getFullPath(path: string, isDirectory: boolean) {
+    let fullPath: string;
+    if (!path || path === "/") {
+      fullPath = this.repository;
+    } else {
+      fullPath = joinPaths(this.repository, path, false);
+    }
+    if (isDirectory) {
+      fullPath += "/";
+    }
+    return fullPath;
+  }
+
+  public async _getMetadata(path: string, isDirectory: boolean) {
+    const entry = this._getEntry(path, isDirectory);
+    try {
+      const res = await entry.getMetadata();
+      return res[0] as { [key: string]: string };
     } catch (e) {
       throw this._error(path, e, false);
     }

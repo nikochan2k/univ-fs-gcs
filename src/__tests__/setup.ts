@@ -1,4 +1,4 @@
-import { ErrorLike, NotFoundError } from "univ-fs";
+import { OnExists, OnNoParent, OnNotExist } from "univ-fs";
 import { GCSFileSystem } from "../GCSFileSystem";
 
 export const fs = new GCSFileSystem("nikochan2k-test", "univ-fs-test", {
@@ -6,13 +6,15 @@ export const fs = new GCSFileSystem("nikochan2k-test", "univ-fs-test", {
 });
 
 export const setup = async () => {
-  try {
-    const root = await fs._getDirectory("/");
-    await root.rm({ force: true, recursive: true, ignoreHook: true });
-    await root.mkdir({ force: true, recursive: false, ignoreHook: true });
-  } catch (e) {
-    if ((e as ErrorLike).name !== NotFoundError.name) {
-      throw e;
-    }
-  }
+  const root = await fs.getDirectory("/");
+  await root.rm({
+    onNotExist: OnNotExist.Ignore,
+    recursive: true,
+    ignoreHook: true,
+  });
+  await root.mkdir({
+    onExists: OnExists.Ignore,
+    onNoParent: OnNoParent.Error,
+    ignoreHook: true,
+  });
 };
