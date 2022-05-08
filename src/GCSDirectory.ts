@@ -43,11 +43,11 @@ export class GCSDirectory extends AbstractDirectory {
     }
   }
 
-  public async _doMkcol(): Promise<void> {
+  public _doMkcol(): Promise<void> {
     return Promise.resolve();
   }
 
-  public async _doRmdir(): Promise<void> {
+  public _doDelete(): Promise<void> {
     return Promise.resolve();
   }
 }

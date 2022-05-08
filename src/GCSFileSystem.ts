@@ -43,12 +43,48 @@ export class GCSFileSystem extends AbstractFileSystem {
     return metadata;
   }
 
-  public _doGetDirectory(path: string): Promise<AbstractDirectory> {
-    return Promise.resolve(new GCSDirectory(this, path));
+  public _doGetDirectory(path: string): AbstractDirectory {
+    return new GCSDirectory(this, path);
   }
 
-  public _doGetFile(path: string): Promise<AbstractFile> {
-    return Promise.resolve(new GCSFile(this, path));
+  public _doGetFile(path: string): AbstractFile {
+    return new GCSFile(this, path);
+  }
+
+  public async _doGetURL(
+    path: string,
+    _isDirectory: boolean,
+    options?: URLOptions
+  ): Promise<string> {
+    options = { method: "GET", expires: 86400, ...options };
+    let action: "read" | "write" | "delete";
+    switch (options.method) {
+      case "GET":
+        action = "read";
+        break;
+      case "PUT":
+      case "POST":
+        action = "write";
+        break;
+      case "DELETE":
+        action = "delete";
+        break;
+      default:
+        throw this._error(
+          path,
+          { message: `"${options.method}" is not supported` }, // eslint-disable-line
+          false
+        );
+    }
+
+    const file = this._getEntry(path, false);
+    try {
+      const expires = new Date(Date.now() + (options.expires ?? 86400) * 1000);
+      const res = await file.getSignedUrl({ action, expires });
+      return res[0];
+    } catch (e) {
+      throw this._error(path, e, false);
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -74,42 +110,6 @@ export class GCSFileSystem extends AbstractFileSystem {
       await entry.setMetadata(obj);
     } catch (e) {
       throw this._error(path, e, true);
-    }
-  }
-
-  public async _doToURL(
-    path: string,
-    _isDirectory: boolean,
-    options?: URLOptions
-  ): Promise<string> {
-    options = { urlType: "GET", expires: 86400, ...options };
-    let action: "read" | "write" | "delete";
-    switch (options.urlType) {
-      case "GET":
-        action = "read";
-        break;
-      case "PUT":
-      case "POST":
-        action = "write";
-        break;
-      case "DELETE":
-        action = "delete";
-        break;
-      default:
-        throw this._error(
-          path,
-          { message: `"${options.urlType}" is not supported` }, // eslint-disable-line
-          false
-        );
-    }
-
-    const file = this._getEntry(path, false);
-    try {
-      const expires = new Date(Date.now() + (options.expires ?? 86400) * 1000);
-      const res = await file.getSignedUrl({ action, expires });
-      return res[0];
-    } catch (e) {
-      throw this._error(path, e, false);
     }
   }
 

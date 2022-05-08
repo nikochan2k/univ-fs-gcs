@@ -7,6 +7,17 @@ export class GCSFile extends AbstractFile {
     super(gfs, path);
   }
 
+  public async _doDelete(): Promise<void> {
+    const gfs = this.gfs;
+    const path = this.path;
+    try {
+      const file = this.gfs._getEntry(path, false);
+      await file.delete();
+    } catch (e) {
+      throw gfs._error(path, e, true);
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async _doRead(_stats: Stats, _options: ReadOptions): Promise<Data> {
     const gfs = this.gfs;
@@ -21,17 +32,6 @@ export class GCSFile extends AbstractFile {
       }
     } catch (e) {
       throw gfs._error(path, e, false);
-    }
-  }
-
-  public async _doRm(): Promise<void> {
-    const gfs = this.gfs;
-    const path = this.path;
-    try {
-      const file = this.gfs._getEntry(path, false);
-      await file.delete();
-    } catch (e) {
-      throw gfs._error(path, e, true);
     }
   }
 
