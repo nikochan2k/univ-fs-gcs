@@ -22,6 +22,8 @@ export interface Command {
   Key: string;
 }
 
+const SECONDS_OF_DAY = 24 * 60 * 60;
+
 export class GCSFileSystem extends AbstractFileSystem {
   private bucket?: Bucket;
 
@@ -54,9 +56,8 @@ export class GCSFileSystem extends AbstractFileSystem {
   public async _doGetURL(
     path: string,
     _isDirectory: boolean,
-    options?: URLOptions
+    options: URLOptions
   ): Promise<string> {
-    options = { method: "GET", expires: 86400, ...options };
     let action: "read" | "write" | "delete";
     switch (options.method) {
       case "GET":
@@ -79,7 +80,9 @@ export class GCSFileSystem extends AbstractFileSystem {
 
     const file = this._getEntry(path, false);
     try {
-      const expires = new Date(Date.now() + (options.expires ?? 86400) * 1000);
+      const expires = new Date(
+        Date.now() + (options.expires ?? SECONDS_OF_DAY) * 1000
+      );
       const res = await file.getSignedUrl({ action, expires });
       return res[0];
     } catch (e) {
