@@ -1,5 +1,5 @@
 import { Data, hasReadable, readableConverter } from "univ-conv";
-import { AbstractFile, ReadOptions, Stats, WriteOptions } from "univ-fs";
+import { AbstractFile, Stats, WriteOptions } from "univ-fs";
 import { GCSFileSystem } from "./GCSFileSystem";
 
 export class GCSFile extends AbstractFile {
@@ -18,8 +18,7 @@ export class GCSFile extends AbstractFile {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public async _doRead(_stats: Stats, _options: ReadOptions): Promise<Data> {
+  public async _doRead(): Promise<Data> {
     const gfs = this.gfs;
     const path = this.path;
     try {

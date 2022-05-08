@@ -5,7 +5,6 @@ import {
   AbstractFileSystem,
   createError,
   FileSystemOptions,
-  HeadOptions,
   joinPaths,
   NoModificationAllowedError,
   NotFoundError,
@@ -90,8 +89,7 @@ export class GCSFileSystem extends AbstractFileSystem {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public async _doHead(path: string, _?: HeadOptions): Promise<Stats> {
+  public async _doHead(path: string): Promise<Stats> {
     try {
       const res = await this._getMetadata(path, false);
       return this._handleHead(res);
@@ -130,7 +128,7 @@ export class GCSFileSystem extends AbstractFileSystem {
       name,
       repository: this.repository,
       path,
-      e: e as any, // eslint-disable-line
+      e,
     });
   }
 
@@ -212,6 +210,5 @@ export class GCSFileSystem extends AbstractFileSystem {
 
     return stats;
   }
-
   /* eslint-enable */
 }
